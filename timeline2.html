@@ -116,7 +116,7 @@ var xOffset = 50;
 // Top X axis
 var 
 	xCurr = d3.time.scale().range([0 + xOffset, width - xOffset]),
-    x2 = d3.time.scale().range([0 + xOffset, width - xOffset]),
+    xBase = d3.time.scale().range([0 + xOffset, width - xOffset]),
     yCurr = d3.scale.linear().range([margin.top, topSceneBottom]),
     yBase = d3.scale.linear().range([topSceneBottom, margin.top]),
     yFocus = d3.scale.linear().range([topSceneBottom, margin.top]),
@@ -126,7 +126,7 @@ var yBar = d3.scale.linear()
     .range([bottomSceneHeight, margin2.top]);	
 
 var xAxis = d3.svg.axis().scale(xCurr).orient("bottom"),
-    xAxis2 = d3.svg.axis().scale(x2).orient("bottom"),
+    xAxis2 = d3.svg.axis().scale(xBase).orient("bottom"),
     yAxis = d3.svg.axis().scale(yCurr).orient("left");
 
 var svg = d3.select("body").append("svg")
@@ -229,7 +229,7 @@ function readData(data)
   yFocus.domain([0, d3.max(data.nodes.map(function(d) { return d.value; }))]);
   yBrush.domain([0, d3.max(data.nodes.map(function(d) { return d.value; }))]);
 
-  x2.domain(xCurr.domain());
+  xBase.domain(xCurr.domain());
   yBar.domain([0, d3.max(data.nodes, function(d) { return d.value; })]);
 
   node1 = focus.selectAll("circle.dot")
@@ -261,7 +261,7 @@ function readData(data)
           .data(data.nodes)
           .enter().append("rect")
            .attr("class","bar")
-           .attr("x", function(d){ return x2(d.date); })
+           .attr("x", function(d){ return xBase(d.date); })
            .attr("width", 4)
            .attr("y", function(d) { return yBar(d.value); })
            .attr("height", function(d) { return bottomSceneBottom - yBar(d.value); });
@@ -273,7 +273,7 @@ function readData(data)
 
   context.append("g")
     .attr("class", "brush")
-    .call(d3.svg.brush().x(x2).y(yBrush)
+    .call(d3.svg.brush().x(xBase).y(yBrush)
     .on("brushstart", brushstart)
     .on("brush", brushmove)
     .on("brushend", brushend));
@@ -345,7 +345,7 @@ function brush() {
   var brush = d3.event.target;
 
   // Set the domain of x and y (scale domain)
-  xCurr.domain(brush.empty() ? x2.domain() : [brush.extent()[0][0], brush.extent()[1][0]]);
+  xCurr.domain(brush.empty() ? xBase.domain() : [brush.extent()[0][0], brush.extent()[1][0]]);
   yCurr.domain(brush.empty() ? yBase.domain() : [brush.extent()[0][1], brush.extent()[1][1]]);
   yFocus.domain(brush.empty() ? yBase.domain() : [brush.extent()[0][1], brush.extent()[1][1]]);
 
