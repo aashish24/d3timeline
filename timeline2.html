@@ -207,7 +207,7 @@ function readData(data)
               .attr("cy", function(d){ return y1(d.value); });
 
   // Create links
-  var link = focus.selectAll(".link")
+  var link = focus.selectAll("line.link")
                .data(data.links)
                  .enter().append("line")
                    .attr("class", "link")
@@ -300,18 +300,25 @@ function listProperties(obj) {
 function brush() {
    var brush = d3.event.target;
 
-   console.log(brush.empty());
+   //console.log(brush.empty());
 
   // Set the domain of x and y (scale domain)
   x.domain(brush.empty() ? x2.domain() : [brush.extent()[0][0], brush.extent()[1][0]]);
   y.domain(brush.empty() ? y1.domain() : [brush.extent()[0][1], brush.extent()[1][1]]);
   y_focus.domain(brush.empty() ? y1.domain() : [brush.extent()[0][1], brush.extent()[1][1]]);
 
+  focus.selectAll("line.link").attr("x1", function(d) { return x(dateByIndex[d.source.index]); })
+  focus.selectAll("line.link").attr("y1", function(d) { return y_focus(valueByIndex[d.source.index]); })
+  focus.selectAll("line.link").attr("x2", function(d) { return x(dateByIndex[d.target.index]); })
+  focus.selectAll("line.link").attr("y2", function(d) { return y_focus(valueByIndex[d.target.index]); })
+
   // Re-evaluate the center of nodes in this new domain
   focus.selectAll("circle.dot").attr("cx", function(d) { return x(d.date); })
   focus.selectAll("circle.dot").attr("cy", function(d) { return y_focus(d.value); })
+
   focus.selectAll("circle.selected").attr("cx", function(d) { return x(d.date); })
   focus.selectAll("circle.selected").attr("cy", function(d) { return y_focus(d.value); })
+
   focus.selectAll(".node_labels").attr("x", function(d) { return x(d.date) + 10; })
   focus.selectAll(".node_labels").attr("y", function(d) { return y_focus(d.value) - 10; })
 
