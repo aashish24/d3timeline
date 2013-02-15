@@ -28,8 +28,7 @@ path {
   fill: green;
 }
 
-.dot
-{
+.dot {
  fill: #FD8D3C;
  stoke: black;
  stroke-width: 0.5px;
@@ -99,6 +98,7 @@ var inputData = {
   ]
 };
 
+/// View parameters
 var margin = {top: 40, right: 0, bottom: 100, left: 40},
     margin2 = {top: 40, right: 0, bottom: 20, left: 40},
     totalWidth = 1024,
@@ -110,10 +110,11 @@ var margin = {top: 40, right: 0, bottom: 100, left: 40},
     bottomSceneBottom = totalHeight - topViewHeight - margin2.bottom,
     bottomSceneHeight = totalHeight - topViewHeight - margin2.bottom - margin2.top;
 
+/// Some other necessary parameters
 var parseDate = d3.time.format("%b %Y").parse;
 var xOffset = 50;
 
-// Top X axis
+/// X, Y scale
 var 
 	xCurr = d3.time.scale().range([0 + xOffset, width - xOffset]),
     xBase = d3.time.scale().range([0 + xOffset, width - xOffset]),
@@ -133,9 +134,8 @@ var svg = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", topSceneHeight + margin.top + margin.bottom);
 
-//var rect = svg.append("rect").attr("width", "100%").attr("height", "100%");
-var path = svg.append("defs").append("clipPath").attr("id", "clip");
 
+var path = svg.append("defs").append("clipPath").attr("id", "clip");
 path.append("rect")
   .attr("width", width)
     .attr("height", topSceneHeight)
@@ -159,12 +159,13 @@ var dateByIndex = {};
 var valueByIndex = {};
 var index = 0;
 var forcedSim = 0;
+
 /// Label acchor and its links
 var nodes = [];
 var labelAnchors = [];
 var labelAnchorLinks = [];
 
-// Force layout
+/// Force layout
 var link;
 var force = d3.layout.force()
               .size([width, topSceneHeight]);
@@ -172,8 +173,7 @@ var force2;
 var anchorNode;
 var anchorLink;
 
-function readData(data)
-{
+function readData(data) {
   force
     .nodes(data.nodes)
     .links(data.links)
@@ -216,13 +216,13 @@ function readData(data)
   
   console.log(countByDate);
 
-  // Fill up value by index
+  /// Fill up value by index
   index = 0;
   data.nodes.forEach(function(d) {
     valueByIndex[index++] = d.value;
   });
 
-  // Domains
+  /// Define domains for scales
   xCurr.domain(d3.extent(data.nodes.map(function(d) { return d.date; })));
   yBase.domain([0, d3.max(data.nodes.map(function(d) { return d.value; }))]);
 
@@ -240,7 +240,7 @@ function readData(data)
               .attr("cx", function(d){ return xCurr(d.date); })
               .attr("cy", function(d){ return yBase(d.value); });
 
-  // Create links
+  /// Create links
   link = focus.selectAll("line.link")
     .data(data.links)
     .enter().append("line")
@@ -257,6 +257,7 @@ function readData(data)
     .attr("transform", "translate(0," + topSceneBottom + ")")
     .call(xAxis);
 
+  /// Create context nodes
   node2 = context.selectAll("circle.dot2")
           .data(data.nodes)
           .enter().append("rect")
@@ -291,6 +292,7 @@ function readData(data)
   anchorLink = focus.selectAll("line.anchorLink")
     .data(labelAnchorLinks);
 
+  /// Create anchor nodes
   anchorNode = focus.selectAll("g.anchorNode")
     .data(force2.nodes())
     .enter()
@@ -309,6 +311,7 @@ function readData(data)
     });
 }
 
+/// Now actually read the data
 readData(inputData);
 
 function brushstart() {
@@ -319,8 +322,7 @@ function brushend() {
   svg.classed("selecting", !d3.event.target.empty());
 }
 
-function brushmove()
-{
+function brushmove() {
   var e = d3.event.target.extent();
   node1.classed("selected", function(d) {
     return (e[0][0] <= d.date && d.date <= e[1][0]);
@@ -388,11 +390,13 @@ var updateNode = function() {
   });
 }
 
+/// On tick event start the simulation for anchor nodes
 force.on("tick", function() {
   force2.start();
 
   anchorNode.each(function(d, i) {
-	  
+	 
+	/// forcedSim is ON when we brush context view 
     if(i % 2 === 0) {
       d.x = xCurr(d.node.date);
       if (forcedSim === 1) {
@@ -406,6 +410,7 @@ force.on("tick", function() {
       
       var delX, delY;
       
+      /// forcedSim is ON when we brush context view
       if (forcedSim === 1) {
     	  delY = yFocus(d.node.value);
       } else {
@@ -423,6 +428,8 @@ force.on("tick", function() {
       var shiftX = b.width * (diffX - dist) / (dist * 2);
       shiftX = Math.max(-b.width, Math.min(0, shiftX));
       var shiftY = 0;	
+      
+      /// Update both the circle and the text
       this.childNodes[0].setAttribute("transform", "translate(" + shiftX + "," + shiftY + ")");
       this.childNodes[1].setAttribute("transform", "translate(" + shiftX + "," + shiftY + ")");
     }
