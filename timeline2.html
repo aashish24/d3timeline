@@ -117,10 +117,9 @@ var xOffset = 50;
 var x = d3.time.scale().range([0 + xOffset, width - xOffset]),
     x2 = d3.time.scale().range([0 + xOffset, width - xOffset]),
     // Top Y axis
-    y = d3.scale.linear().range([0, topSceneBottom]),
+    y = d3.scale.linear().range([margin.top, topSceneBottom]),
     y1 = d3.scale.linear().range([topSceneBottom, margin.top]),
     y_focus = d3.scale.linear().range([topSceneBottom, margin.top]),
-    y2 = d3.scale.linear().range([bottomSceneBottom, margin2.top]),
     y_brush = d3.scale.linear().range([bottomSceneBottom, margin2.top]);
 
 var y_bar = d3.scale.linear()
@@ -231,7 +230,6 @@ function readData(data)
   y_brush.domain([0, d3.max(data.nodes.map(function(d) { return d.value; }))]);
 
   x2.domain(x.domain());
-  y2.domain(y1.domain());
   y_bar.domain([0, d3.max(data.nodes, function(d) { return d.value; })]);
 
   node1 = focus.selectAll("circle.dot")
@@ -424,7 +422,7 @@ force.on("tick", function() {
 
       var shiftX = b.width * (diffX - dist) / (dist * 2);
       shiftX = Math.max(-b.width, Math.min(0, shiftX));
-      var shiftY = 0;
+      var shiftY = 0;	
       this.childNodes[0].setAttribute("transform", "translate(" + shiftX + "," + shiftY + ")");
       this.childNodes[1].setAttribute("transform", "translate(" + shiftX + "," + shiftY + ")");
     }
