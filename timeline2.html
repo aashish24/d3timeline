@@ -118,11 +118,11 @@ var x = d3.time.scale().range([0 + xOffset, width - xOffset]),
     x2 = d3.time.scale().range([0 + xOffset, width - xOffset]),
     // Top Y axis
     y = d3.scale.linear().range([margin.top, topSceneBottom]),
-    y1 = d3.scale.linear().range([topSceneBottom, margin.top]),
-    y_focus = d3.scale.linear().range([topSceneBottom, margin.top]),
-    y_brush = d3.scale.linear().range([bottomSceneBottom, margin2.top]);
+    yBase = d3.scale.linear().range([topSceneBottom, margin.top]),
+    yFocus = d3.scale.linear().range([topSceneBottom, margin.top]),
+    yBrush = d3.scale.linear().range([bottomSceneBottom, margin2.top]);
 
-var y_bar = d3.scale.linear()
+var yBar = d3.scale.linear()
     .range([bottomSceneHeight, margin2.top]);	
 
 var xAxis = d3.svg.axis().scale(x).orient("bottom"),
@@ -224,13 +224,13 @@ function readData(data)
 
   // Domains
   x.domain(d3.extent(data.nodes.map(function(d) { return d.date; })));
-  y1.domain([0, d3.max(data.nodes.map(function(d) { return d.value; }))]);
+  yBase.domain([0, d3.max(data.nodes.map(function(d) { return d.value; }))]);
 
-  y_focus.domain([0, d3.max(data.nodes.map(function(d) { return d.value; }))]);
-  y_brush.domain([0, d3.max(data.nodes.map(function(d) { return d.value; }))]);
+  yFocus.domain([0, d3.max(data.nodes.map(function(d) { return d.value; }))]);
+  yBrush.domain([0, d3.max(data.nodes.map(function(d) { return d.value; }))]);
 
   x2.domain(x.domain());
-  y_bar.domain([0, d3.max(data.nodes, function(d) { return d.value; })]);
+  yBar.domain([0, d3.max(data.nodes, function(d) { return d.value; })]);
 
   node1 = focus.selectAll("circle.dot")
           .data(data.nodes)
@@ -238,7 +238,7 @@ function readData(data)
               .attr("class","dot")
               .attr("r", 6)
               .attr("cx", function(d){ return x(d.date); })
-              .attr("cy", function(d){ return y1(d.value); });
+              .attr("cy", function(d){ return yBase(d.value); });
 
   // Create links
   link = focus.selectAll("line.link")
@@ -248,9 +248,9 @@ function readData(data)
       .style("stroke-width", function(d) { return Math.sqrt(10); });
 
   link.attr("x1", function(d) { return x(dateByIndex[d.source.index]); })
-      .attr("y1", function(d) { return y1(valueByIndex[d.source.index]); })
+      .attr("y1", function(d) { return yBase(valueByIndex[d.source.index]); })
       .attr("x2", function(d) { return x(dateByIndex[d.target.index]); })
-      .attr("y2", function(d) { return y1(valueByIndex[d.target.index]); });
+      .attr("y2", function(d) { return yBase(valueByIndex[d.target.index]); });
 
   focus.append("g")
     .attr("class", "x axis")
@@ -263,8 +263,8 @@ function readData(data)
            .attr("class","bar")
            .attr("x", function(d){ return x2(d.date); })
            .attr("width", 4)
-           .attr("y", function(d) { return y_bar(d.value); })
-           .attr("height", function(d) { return bottomSceneBottom - y_bar(d.value); });
+           .attr("y", function(d) { return yBar(d.value); })
+           .attr("height", function(d) { return bottomSceneBottom - yBar(d.value); });
 
   context.append("g")
     .attr("class", "x axis")
@@ -273,7 +273,7 @@ function readData(data)
 
   context.append("g")
     .attr("class", "brush")
-    .call(d3.svg.brush().x(x2).y(y_brush)
+    .call(d3.svg.brush().x(x2).y(yBrush)
     .on("brushstart", brushstart)
     .on("brush", brushmove)
     .on("brushend", brushend));
@@ -346,20 +346,20 @@ function brush() {
 
   // Set the domain of x and y (scale domain)
   x.domain(brush.empty() ? x2.domain() : [brush.extent()[0][0], brush.extent()[1][0]]);
-  y.domain(brush.empty() ? y1.domain() : [brush.extent()[0][1], brush.extent()[1][1]]);
-  y_focus.domain(brush.empty() ? y1.domain() : [brush.extent()[0][1], brush.extent()[1][1]]);
+  y.domain(brush.empty() ? yBase.domain() : [brush.extent()[0][1], brush.extent()[1][1]]);
+  yFocus.domain(brush.empty() ? yBase.domain() : [brush.extent()[0][1], brush.extent()[1][1]]);
 
   focus.selectAll("line.link").attr("x1", function(d) { return x(dateByIndex[d.source.index]); })
-  focus.selectAll("line.link").attr("y1", function(d) { return y_focus(valueByIndex[d.source.index]); })
+  focus.selectAll("line.link").attr("y1", function(d) { return yFocus(valueByIndex[d.source.index]); })
   focus.selectAll("line.link").attr("x2", function(d) { return x(dateByIndex[d.target.index]); })
-  focus.selectAll("line.link").attr("y2", function(d) { return y_focus(valueByIndex[d.target.index]); })
+  focus.selectAll("line.link").attr("y2", function(d) { return yFocus(valueByIndex[d.target.index]); })
 
   // Re-evaluate the center of nodes in this new domain
   focus.selectAll("circle.dot").attr("cx", function(d) { return x(d.date); })
-  focus.selectAll("circle.dot").attr("cy", function(d) { return y_focus(d.value); })
+  focus.selectAll("circle.dot").attr("cy", function(d) { return yFocus(d.value); })
 
   focus.selectAll("circle.selected").attr("cx", function(d) { return x(d.date); })
-  focus.selectAll("circle.selected").attr("cy", function(d) { return y_focus(d.value); })
+  focus.selectAll("circle.selected").attr("cy", function(d) { return yFocus(d.value); })
 
   // Kind of same of the tick labels
   focus.select(".x.axis").call(xAxis);
@@ -396,9 +396,9 @@ force.on("tick", function() {
     if(i % 2 === 0) {
       d.x = x(d.node.date);
       if (forcedSim === 1) {
-        d.y = y_focus(d.node.value);
+        d.y = yFocus(d.node.value);
       } else {
-        d.y = y1(d.node.value);
+        d.y = yBase(d.node.value);
       }
 
     } else {
@@ -407,9 +407,9 @@ force.on("tick", function() {
       var delX, delY;
       
       if (forcedSim === 1) {
-    	  delY = y_focus(d.node.value);
+    	  delY = yFocus(d.node.value);
       } else {
-    	  delY = y1(d.node.value);  		  
+    	  delY = yBase(d.node.value);  		  
       }
       
       delX= x(d.node.date);
