@@ -99,12 +99,16 @@ var inputData = {
   ]
 };
 
-var margin = {top: 10, right: 0, bottom: 100, left: 40},
-    margin2 = {top: 600, right: 0, bottom: 20, left: 40},
-    width = 1024 - margin.left - margin.right,
-    height = 800 - margin.top - margin.bottom,
-    topSceneBottom = margin2.top - margin.bottom,
-    height2 = 800 - margin2.top - margin2.bottom;
+var margin = {top: 40, right: 0, bottom: 100, left: 40},
+    margin2 = {top: 40, right: 0, bottom: 20, left: 40},
+    totalWidth = 1024,
+    totalHeight = 800, 
+    topViewHeight = 600,
+    width = totalWidth - margin.left - margin.right,
+    topSceneHeight = totalHeight - margin.top - margin.bottom,
+    topSceneBottom = topViewHeight - margin.bottom,
+    bottomSceneBottom = totalHeight - topViewHeight - margin2.bottom,
+    bottomSceneHeight = totalHeight - topViewHeight - margin2.bottom - margin2.top;
 
 var parseDate = d3.time.format("%b %Y").parse;
 var xOffset = 50;
@@ -113,14 +117,14 @@ var xOffset = 50;
 var x = d3.time.scale().range([0 + xOffset, width - xOffset]),
     x2 = d3.time.scale().range([0 + xOffset, width - xOffset]),
     // Top Y axis
-    y = d3.scale.linear().range([0, height]),
-    y1 = d3.scale.linear().range([350, 220]),
-    y_focus = d3.scale.linear().range([350, 220]),
-    y2 = d3.scale.linear().range([height2, 5]),
-    y_brush = d3.scale.linear().range([height2, 0]);
+    y = d3.scale.linear().range([0, topSceneBottom]),
+    y1 = d3.scale.linear().range([topSceneBottom, margin.top]),
+    y_focus = d3.scale.linear().range([topSceneBottom, margin.top]),
+    y2 = d3.scale.linear().range([bottomSceneBottom, margin2.top]),
+    y_brush = d3.scale.linear().range([bottomSceneBottom, margin2.top]);
 
 var y_bar = d3.scale.linear()
-    .range([height2, 0]);
+    .range([bottomSceneHeight, margin2.top]);	
 
 var xAxis = d3.svg.axis().scale(x).orient("bottom"),
     xAxis2 = d3.svg.axis().scale(x2).orient("bottom"),
@@ -128,14 +132,14 @@ var xAxis = d3.svg.axis().scale(x).orient("bottom"),
 
 var svg = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom);
+    .attr("height", topSceneHeight + margin.top + margin.bottom);
 
 //var rect = svg.append("rect").attr("width", "100%").attr("height", "100%");
 var path = svg.append("defs").append("clipPath").attr("id", "clip");
 
 path.append("rect")
   .attr("width", width)
-    .attr("height", height)
+    .attr("height", topSceneHeight)
     .attr("fill", "blue");
 
 var focus = svg.append("g")
@@ -143,7 +147,7 @@ var focus = svg.append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
 var context = svg.append("g")
-    .attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
+    .attr("transform", "translate(" + margin2.left + "," + topViewHeight + ")");
 
 var rect = focus.append("rect").attr("width", "100%").attr("height", "100%").attr("fill", "beige");
 
@@ -164,7 +168,7 @@ var labelAnchorLinks = [];
 // Force layout
 var link;
 var force = d3.layout.force()
-              .size([width, height]);
+              .size([width, topSceneHeight]);
 var force2;
 var anchorNode;
 var anchorLink;
@@ -262,11 +266,11 @@ function readData(data)
            .attr("x", function(d){ return x2(d.date); })
            .attr("width", 4)
            .attr("y", function(d) { return y_bar(d.value); })
-           .attr("height", function(d) { return height2 - y_bar(d.value); });
+           .attr("height", function(d) { return bottomSceneBottom - y_bar(d.value); });
 
   context.append("g")
     .attr("class", "x axis")
-    .attr("transform", "translate(0," + height2 + ")")
+    .attr("transform", "translate(0," + bottomSceneBottom + ")")
     .call(xAxis2);
 
   context.append("g")
@@ -283,7 +287,7 @@ function readData(data)
              .linkDistance(15)
              .linkStrength(8)
              .charge(-100)
-             .size([width, height]);
+             .size([width, topSceneHeight]);
 
   force2.start();
   anchorLink = focus.selectAll("line.anchorLink")
@@ -358,9 +362,6 @@ function brush() {
 
   focus.selectAll("circle.selected").attr("cx", function(d) { return x(d.date); })
   focus.selectAll("circle.selected").attr("cy", function(d) { return y_focus(d.value); })
-
-  //focus.selectAll(".node_labels").attr("x", function(d) { return x(d.date) + 10; })
-  //focus.selectAll(".node_labels").attr("y", function(d) { return y_focus(d.value) - 10; })
 
   // Kind of same of the tick labels
   focus.select(".x.axis").call(xAxis);
