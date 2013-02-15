@@ -49,6 +49,11 @@ path {
   stroke-opacity: .6;
 }
 
+.link2 {
+  stroke: #999;
+  stroke-opacity: .6;
+}
+
 </style>
 <body>
 <script src="http://d3js.org/d3.v3.min.js"></script>
@@ -101,7 +106,6 @@ var margin = {top: 10, right: 0, bottom: 100, left: 40},
     height2 = 500 - margin2.top - margin2.bottom;
 
 var parseDate = d3.time.format("%b %Y").parse;
-
 var rad = 10;
 var xOffset = rad + 5;
 
@@ -153,9 +157,18 @@ var dateByIndex = {};
 var valueByIndex = {};
 var index = 0;
 
+/// Label acchor and its links
+var nodes = [];
+var labelAnchors = [];
+var labelAnchorLinks = [];
+
 // Force layout
+var link;
 var force = d3.layout.force()
               .size([width, height]);
+var force2;
+var anchorNode;
+var anchorLink;
 
 function readData(data)
 {
@@ -176,7 +189,28 @@ function readData(data)
       d.value = countByDate[d.date];
     }
 
-    dateByIndex[index++] = d.date;
+    dateByIndex[index] = d.date;
+
+    var label = "node " + index.toString();
+    labelAnchors.push({
+      node : d,
+      label : label,
+      value : d.value,
+      date: d.date
+    });
+    labelAnchors.push({
+      node : d,
+      label : label,
+      value : d.value,
+      date: d.date
+    });
+    labelAnchorLinks.push({
+      source : (index) * 2,
+      target : (index * 2 + 1),
+      weight : 1
+    });
+
+    index += 1;
   });
 
   // Fill up value by index
@@ -184,8 +218,6 @@ function readData(data)
   data.nodes.forEach(function(d) {
     valueByIndex[index++] = d.value;
   });
-
-  console.log(valueByIndex);
 
   // Domains
   x.domain(d3.extent(data.nodes.map(function(d) { return d.date; })));
@@ -207,11 +239,16 @@ function readData(data)
               .attr("cy", function(d){ return y1(d.value); });
 
   // Create links
-  var link = focus.selectAll("line.link")
-               .data(data.links)
-                 .enter().append("line")
-                   .attr("class", "link")
-                   .style("stroke-width", function(d) { return Math.sqrt(10); });
+  link = focus.selectAll("line.link")
+    .data(data.links)
+    .enter().append("line")
+      .attr("class", "link")
+      .style("stroke-width", function(d) { return Math.sqrt(10); });
+
+  link.attr("x1", function(d) { return x(dateByIndex[d.source.index]); })
+      .attr("y1", function(d) { return y1(valueByIndex[d.source.index]); })
+      .attr("x2", function(d) { return x(dateByIndex[d.target.index]); })
+      .attr("y2", function(d) { return y1(valueByIndex[d.target.index]); });
 
   // Create labels
   focus.selectAll(".node_labels")
@@ -258,11 +295,36 @@ function readData(data)
     .on("brush", brushmove)
     .on("brushend", brushend));
 
-  force.on("tick", function() {
-    link.attr("x1", function(d) { return x(dateByIndex[d.source.index]); })
-        .attr("y1", function(d) { return y1(valueByIndex[d.source.index]); })
-        .attr("x2", function(d) { return x(dateByIndex[d.target.index]); })
-        .attr("y2", function(d) { return y1(valueByIndex[d.target.index]); });});
+  force2 = d3.layout.force()
+             .nodes(labelAnchors)
+             .links(labelAnchorLinks)
+             .gravity(0)
+             .linkDistance(0)
+             .linkStrength(8)
+             .charge(-100)
+             .size([width, height]);
+
+  force2.start();
+  anchorLink = focus.selectAll("line.anchorLink")
+    .data(labelAnchorLinks);
+
+  anchorNode = focus.selectAll("g.anchorNode")
+    .data(force2.nodes())
+    .enter()
+    .append("svg:g")
+    .attr("class", "anchorNode");
+
+  anchorNode.append("svg:circle")
+    .attr("r", 10)
+    .style("fill", "#FFF");
+
+  anchorNode.append("svg:text")
+    .text(function(d, i) {
+      return i % 2 == 0 ? "" : d.label
+    })
+    .style("fill", "#555")
+    .style("font-family", "Arial")
+    .style("font-size", 12);
 }
 
 readData(inputData);
@@ -298,9 +360,7 @@ function listProperties(obj) {
 }
 
 function brush() {
-   var brush = d3.event.target;
-
-   //console.log(brush.empty());
+  var brush = d3.event.target;
 
   // Set the domain of x and y (scale domain)
   x.domain(brush.empty() ? x2.domain() : [brush.extent()[0][0], brush.extent()[1][0]]);
@@ -326,4 +386,25 @@ function brush() {
   focus.select(".x.axis").call(xAxis);
 }
 
+var updateLink = function() {
+  this.attr("x1", function(d) {
+    return d.source.x;
+  }).attr("y1", function(d) {
+    return d.source.y;
+  }).attr("x2", function(d) {
+    return d.target.x;
+  }).attr("y2", function(d) {
+    return d.target.y;
+  });
+}
+
+var updateNode = function() {
+  this.attr("transform", function(d) {
+    return "translate(" + d.node.x + "," + d.node.y + ")";
+  });
+}
+
+
+force.on("tick", function() {
+});
 </script>
