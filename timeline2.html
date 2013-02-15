@@ -100,13 +100,13 @@ var inputData = {
 };
 
 var margin = {top: 10, right: 0, bottom: 100, left: 40},
-    margin2 = {top: 430, right: 0, bottom: 20, left: 40},
-    width = 960 - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom,
-    height2 = 500 - margin2.top - margin2.bottom;
+    margin2 = {top: 600, right: 0, bottom: 20, left: 40},
+    width = 1024 - margin.left - margin.right,
+    height = 800 - margin.top - margin.bottom,
+    topSceneBottom = margin2.top - margin.bottom,
+    height2 = 800 - margin2.top - margin2.bottom;
 
 var parseDate = d3.time.format("%b %Y").parse;
-var rad = 10;
 var xOffset = 50;
 
 // Top X axis
@@ -135,8 +135,7 @@ var path = svg.append("defs").append("clipPath").attr("id", "clip");
 
 path.append("rect")
   .attr("width", width)
-    .attr("height", height - 180)
-    .attr("y", 200)
+    .attr("height", height)
     .attr("fill", "blue");
 
 var focus = svg.append("g")
@@ -253,7 +252,7 @@ function readData(data)
 
   focus.append("g")
     .attr("class", "x axis")
-    .attr("transform", "translate(0," + height + ")")
+    .attr("transform", "translate(0," + topSceneBottom + ")")
     .call(xAxis);
 
   node2 = context.selectAll("circle.dot2")
