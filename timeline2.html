@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+svg {
+  font: 10px sans-serif;
+}
+
+path {
+  fill: steelblue;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.brush .extent {
+  stroke: #fff;
+  fill-opacity: .125;
+  shape-rendering: crispEdges;
+}
+
+.bar {
+  stroke: teal;
+  fill: green;
+}
+
+.dot
+{
+ fill: #FD8D3C;
+ stoke: black;
+ stroke-width: 0.5px;
+}
+
+.selecting circle {
+  fill-opacity: .5;
+}
+
+.selecting circle.selected {
+  stroke: black;
+  fill: red;
+}
+
+.link {
+  stroke: #999;
+  stroke-opacity: .6;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+// Input data
+var inputData = {
+  "nodes":[
+    {"id": "foo", "time":"Jan 2000"},
+    {"id": "bar", "time":"Mar 2000"},
+    {"id": "foo", "time":"Feb 2000"},
+    {"id": "foo", "time":"Feb 2000"},
+    {"id": "foo", "time":"June 2001"},
+    {"id": "foo", "time":"Dec 2000"},
+    {"id": "foo", "time":"Feb 2001"},
+    {"id": "foo", "time":"Nov 2001"},
+    {"id": "foo", "time":"Apr 2001"},
+    {"id": "foo", "time":"Feb 2002"},
+    {"id": "foo", "time":"Feb 2002"},
+    {"id": "foo", "time":"Feb 2002"},
+    {"id": "foo", "time":"Oct 2001"},
+    {"id": "foo", "time":"Jan 2000"},
+    {"id": "bar", "time":"Mar 2000"},
+    {"id": "foo", "time":"Feb 2000"},
+    {"id": "foo", "time":"Feb 2000"},
+    {"id": "foo", "time":"June 2001"},
+    {"id": "foo", "time":"Dec 2000"},
+    {"id": "foo", "time":"Feb 2001"},
+    {"id": "foo", "time":"Nov 2001"},
+    {"id": "foo", "time":"Apr 2001"},
+    {"id": "foo", "time":"Feb 2002"},
+    {"id": "foo", "time":"Feb 2002"},
+    {"id": "foo", "time":"Feb 2002"},
+    {"id": "foo", "time":"Oct 2001"},
+  ], "links":[
+    {"source":1,"target":2},
+    {"source":1,"target":3},
+    {"source":1,"target":15},
+    {"source":1,"target":16},
+    {"source":11,"target":12},
+    {"source":11,"target":18},
+    {"source":11,"target":22},
+  ]
+};
+
+var margin = {top: 10, right: 0, bottom: 100, left: 40},
+    margin2 = {top: 430, right: 0, bottom: 20, left: 40},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom,
+    height2 = 500 - margin2.top - margin2.bottom;
+
+var parseDate = d3.time.format("%b %Y").parse;
+
+var rad = 10;
+var xOffset = rad + 5;
+
+// Top X axis
+var x = d3.time.scale().range([0 + xOffset, width - xOffset]),
+    x2 = d3.time.scale().range([0 + xOffset, width - xOffset]),
+    // Top Y axis
+    y = d3.scale.linear().range([0, height]),
+    y1 = d3.scale.linear().range([350, 220]),
+    y_focus = d3.scale.linear().range([350, 220]),
+    y2 = d3.scale.linear().range([height2, 5]),
+    y_brush = d3.scale.linear().range([height2, 0]);
+
+var y_bar = d3.scale.linear()
+    .range([height2, 0]);
+
+var xAxis = d3.svg.axis().scale(x).orient("bottom"),
+    xAxis2 = d3.svg.axis().scale(x2).orient("bottom"),
+    yAxis = d3.svg.axis().scale(y).orient("left");
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom);
+
+//var rect = svg.append("rect").attr("width", "100%").attr("height", "100%");
+var path = svg.append("defs").append("clipPath").attr("id", "clip");
+
+path.append("rect")
+  .attr("width", width)
+    .attr("height", height - 180)
+    .attr("y", 200)
+    .attr("fill", "blue");
+
+var focus = svg.append("g")
+    .attr("clip-path",  "url(#clip)")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var context = svg.append("g")
+    .attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
+
+var rect = focus.append("rect").attr("width", "100%").attr("height", "100%").attr("fill", "beige");
+
+var rect2 = context.append("rect").attr("width", "100%").attr("height", "100%").attr("fill", "snow");
+
+var node1;
+var node2;
+var countByDate = {};
+var dateByIndex = {};
+var valueByIndex = {};
+var index = 0;
+
+// Force layout
+var force = d3.layout.force()
+              .size([width, height]);
+
+function readData(data)
+{
+  force
+    .nodes(data.nodes)
+    .links(data.links)
+    .start();
+
+  data.nodes.forEach(function(d) {
+    d.date = parseDate(d.time);
+
+    if (d.date in countByDate) {
+
+      d.value = countByDate[d.date]
+      countByDate[d.date] += 1;
+    } else {
+      countByDate[d.date] = 1;
+      d.value = countByDate[d.date];
+    }
+
+    dateByIndex[index++] = d.date;
+  });
+
+  // Fill up value by index
+  index = 0;
+  data.nodes.forEach(function(d) {
+    valueByIndex[index++] = d.value;
+  });
+
+  console.log(valueByIndex);
+
+  // Domains
+  x.domain(d3.extent(data.nodes.map(function(d) { return d.date; })));
+  y1.domain([0, d3.max(data.nodes.map(function(d) { return d.value; }))]);
+
+  y_focus.domain([0, d3.max(data.nodes.map(function(d) { return d.value; }))]);
+  y_brush.domain([0, d3.max(data.nodes.map(function(d) { return d.value; }))]);
+
+  x2.domain(x.domain());
+  y2.domain(y1.domain());
+  y_bar.domain([0, d3.max(data.nodes, function(d) { return d.value; })]);
+
+  node1 = focus.selectAll("circle.dot")
+          .data(data.nodes)
+            .enter().append("circle")
+              .attr("class","dot")
+              .attr("r", 6)
+              .attr("cx", function(d){ return x(d.date); })
+              .attr("cy", function(d){ return y1(d.value); });
+
+  // Create links
+  var link = focus.selectAll(".link")
+               .data(data.links)
+                 .enter().append("line")
+                   .attr("class", "link")
+                   .style("stroke-width", function(d) { return Math.sqrt(10); });
+
+  // Create labels
+  focus.selectAll(".node_labels")
+    .data(data.nodes)
+    .enter()
+      .append("text")
+      .attr("class", "node_labels")
+      .text(function(d) {
+      return d.id.toString();
+      })
+      .attr("x", function(d) {
+      return x(d.date) + 10;
+      })
+      .attr("y", function(d) {
+      return y1(d.value) - 10;
+      })
+      .attr("font-family", "sans-serif")
+      .attr("font-size", "11px")
+      .attr("fill", "green");
+
+  focus.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xAxis);
+
+  node2 = context.selectAll("circle.dot2")
+          .data(data.nodes)
+          .enter().append("rect")
+           .attr("class","bar")
+           .attr("x", function(d){ return x2(d.date); })
+           .attr("width", 4)
+           .attr("y", function(d) { return y_bar(d.value); })
+           .attr("height", function(d) { return height2 - y_bar(d.value); });
+
+  context.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height2 + ")")
+    .call(xAxis2);
+
+  context.append("g")
+    .attr("class", "brush")
+    .call(d3.svg.brush().x(x2).y(y_brush)
+    .on("brushstart", brushstart)
+    .on("brush", brushmove)
+    .on("brushend", brushend));
+
+  force.on("tick", function() {
+    link.attr("x1", function(d) { return x(dateByIndex[d.source.index]); })
+        .attr("y1", function(d) { return y1(valueByIndex[d.source.index]); })
+        .attr("x2", function(d) { return x(dateByIndex[d.target.index]); })
+        .attr("y2", function(d) { return y1(valueByIndex[d.target.index]); });});
+}
+
+readData(inputData);
+
+function brushstart() {
+  svg.classed("selecting", true);
+}
+
+function brushend() {
+  svg.classed("selecting", !d3.event.target.empty());
+}
+
+function brushmove()
+{
+  var e = d3.event.target.extent();
+  node1.classed("selected", function(d) {
+    return (e[0][0] <= d.date && d.date <= e[1][0]);
+  });
+  node1.classed("dot", function(d) {
+      return (e[0][0] > d.date || d.date > e[1][0]);
+  });
+
+  brush();
+}
+
+function listProperties(obj) {
+   var propList = "";
+   for(var propName in obj) {
+      if(typeof(obj[propName]) != "undefined") {
+         propList += (propName + ", ");
+      }
+   }
+}
+
+function brush() {
+   var brush = d3.event.target;
+
+   console.log(brush.empty());
+
+  // Set the domain of x and y (scale domain)
+  x.domain(brush.empty() ? x2.domain() : [brush.extent()[0][0], brush.extent()[1][0]]);
+  y.domain(brush.empty() ? y1.domain() : [brush.extent()[0][1], brush.extent()[1][1]]);
+  y_focus.domain(brush.empty() ? y1.domain() : [brush.extent()[0][1], brush.extent()[1][1]]);
+
+  // Re-evaluate the center of nodes in this new domain
+  focus.selectAll("circle.dot").attr("cx", function(d) { return x(d.date); })
+  focus.selectAll("circle.dot").attr("cy", function(d) { return y_focus(d.value); })
+  focus.selectAll("circle.selected").attr("cx", function(d) { return x(d.date); })
+  focus.selectAll("circle.selected").attr("cy", function(d) { return y_focus(d.value); })
+  focus.selectAll(".node_labels").attr("x", function(d) { return x(d.date) + 10; })
+  focus.selectAll(".node_labels").attr("y", function(d) { return y_focus(d.value) - 10; })
+
+  // Kind of same of the tick labels
+  focus.select(".x.axis").call(xAxis);
+}
+
+</script>
