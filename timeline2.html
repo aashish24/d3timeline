@@ -365,9 +365,11 @@ function brush() {
 
   // Kind of same of the tick labels
   focus.select(".x.axis").call(xAxis);
-  force.start();
 
+  // Start the simulation again because it will trigger the tick event which
+  // will re-evaluate the label positions
   forcedSim = 1;
+  force.start();
 }
 
 var updateLink = function() {
