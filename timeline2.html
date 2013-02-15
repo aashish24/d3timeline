@@ -156,7 +156,7 @@ var countByDate = {};
 var dateByIndex = {};
 var valueByIndex = {};
 var index = 0;
-
+var forcedSim = 0;
 /// Label acchor and its links
 var nodes = [];
 var labelAnchors = [];
@@ -250,25 +250,6 @@ function readData(data)
       .attr("x2", function(d) { return x(dateByIndex[d.target.index]); })
       .attr("y2", function(d) { return y1(valueByIndex[d.target.index]); });
 
-  // Create labels
-  focus.selectAll(".node_labels")
-    .data(data.nodes)
-    .enter()
-      .append("text")
-      .attr("class", "node_labels")
-      .text(function(d) {
-      return d.id.toString();
-      })
-      .attr("x", function(d) {
-      return x(d.date) + 10;
-      })
-      .attr("y", function(d) {
-      return y1(d.value) - 10;
-      })
-      .attr("font-family", "sans-serif")
-      .attr("font-size", "11px")
-      .attr("fill", "green");
-
   focus.append("g")
     .attr("class", "x axis")
     .attr("transform", "translate(0," + height + ")")
@@ -301,7 +282,7 @@ function readData(data)
              .gravity(0)
              .linkDistance(0)
              .linkStrength(8)
-             .charge(-100)
+             .charge(-200)
              .size([width, height]);
 
   force2.start();
@@ -315,7 +296,7 @@ function readData(data)
     .attr("class", "anchorNode");
 
   anchorNode.append("svg:circle")
-    .attr("r", 10)
+    .attr("r", 0)
     .style("fill", "#FFF");
 
   anchorNode.append("svg:text")
@@ -379,11 +360,14 @@ function brush() {
   focus.selectAll("circle.selected").attr("cx", function(d) { return x(d.date); })
   focus.selectAll("circle.selected").attr("cy", function(d) { return y_focus(d.value); })
 
-  focus.selectAll(".node_labels").attr("x", function(d) { return x(d.date) + 10; })
-  focus.selectAll(".node_labels").attr("y", function(d) { return y_focus(d.value) - 10; })
+  //focus.selectAll(".node_labels").attr("x", function(d) { return x(d.date) + 10; })
+  //focus.selectAll(".node_labels").attr("y", function(d) { return y_focus(d.value) - 10; })
 
   // Kind of same of the tick labels
   focus.select(".x.axis").call(xAxis);
+  force.start();
+
+  forcedSim = 1;
 }
 
 var updateLink = function() {
@@ -400,11 +384,39 @@ var updateLink = function() {
 
 var updateNode = function() {
   this.attr("transform", function(d) {
-    return "translate(" + d.node.x + "," + d.node.y + ")";
+    return "translate(" + d.x + "," + d.y + ")";
   });
 }
 
-
 force.on("tick", function() {
+  force2.start();
+
+  anchorNode.each(function(d, i) {
+    if(i % 2 == 0) {
+      d.x = x(d.node.date);
+      if (forcedSim === 1) {
+        d.y = y_focus(d.node.value);
+      } else {
+        d.y = y1(d.node.value);
+      }
+
+    } else {
+      var b = this.childNodes[1].getBBox();
+
+      var diffX = d.x - d.node.x;
+      var diffY = d.y - d.node.y;
+
+      var dist = Math.sqrt(diffX * diffX + diffY * diffY);
+
+      var shiftX = b.width * (diffX - dist) / (dist * 2);
+      shiftX = Math.max(-b.width, Math.min(0, shiftX));
+      var shiftY = 0;
+      this.childNodes[1].setAttribute("transform", "translate(" + shiftX + "," + shiftY + ")");
+    }
+  });
+
+
+  anchorNode.call(updateNode);
+  anchorLink.call(updateLink);
 });
 </script>
