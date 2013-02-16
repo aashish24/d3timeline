@@ -171,11 +171,12 @@ var rect = focus.append("rect")
 
 var rect2 = context.append("rect").attr("width", "100%").attr("height", "100%").attr("fill", "snow");
 
+var brusho = null;
 var node1;
 var node2;
 var countByDate = {};
 var dateByIndex = {};
-var valueByIndex = {};
+var valueByIndex = {};	
 var index = 0;
 var forcedSim = 0;
 
@@ -365,27 +366,14 @@ function listProperties(obj) {
 }
 
 function brush() {
-  var brush = d3.event.target;
+  brusho = d3.event.target;
 
   // Set the domain of x and y (scale domain)
-  xCurr.domain(brush.empty() ? xBase.domain() : [brush.extent()[0][0], brush.extent()[1][0]]);
-  yCurr.domain(brush.empty() ? yBase.domain() : [brush.extent()[0][1], brush.extent()[1][1]]);
-  yFocus.domain(brush.empty() ? yBase.domain() : [brush.extent()[0][1], brush.extent()[1][1]]);
-
-  focus.selectAll("line.link").attr("x1", function(d) { return xCurr(dateByIndex[d.source.index]); })
-  focus.selectAll("line.link").attr("y1", function(d) { return yFocus(valueByIndex[d.source.index]); })
-  focus.selectAll("line.link").attr("x2", function(d) { return xCurr(dateByIndex[d.target.index]); })
-  focus.selectAll("line.link").attr("y2", function(d) { return yFocus(valueByIndex[d.target.index]); })
-
-  // Re-evaluate the center of nodes in this new domain
-  focus.selectAll("circle.dot").attr("cx", function(d) { return xCurr(d.date); })
-  focus.selectAll("circle.dot").attr("cy", function(d) { return yFocus(d.value); })
-
-  focus.selectAll("circle.selected").attr("cx", function(d) { return xCurr(d.date); })
-  focus.selectAll("circle.selected").attr("cy", function(d) { return yFocus(d.value); })
-
-  // Kind of same of the tick labels
-  focus.select(".x.axis").call(xAxis);
+  xCurr.domain(brusho.empty() ? xBase.domain() : [brusho.extent()[0][0], brusho.extent()[1][0]]);
+  yCurr.domain(brusho.empty() ? yBase.domain() : [brusho.extent()[0][1], brusho.extent()[1][1]]);
+  yFocus.domain(brusho.empty() ? yBase.domain() : [brusho.extent()[0][1], brusho.extent()[1][1]]);
+ 
+  recomputePositions();
 
   // Start the simulation again because it will trigger the tick event which
   // will re-evaluate the label positions
@@ -458,14 +446,21 @@ force.on("tick", function() {
     }
   });
 
-
   anchorNode.call(updateNode);
   anchorLink.call(updateLink);
 });
 
 
 function draw() {
-  console.log("foo");
+  if (brusho != null) {
+    d3.select(".brush").call(brusho.clear());
+  }
+  recomputePositions();
+  forcedSim = 1;
+  force.start();
+}
+
+function recomputePositions() {
   focus.selectAll("line.link").attr("x1", function(d) { return xCurr(dateByIndex[d.source.index]); })
   focus.selectAll("line.link").attr("y1", function(d) { return yFocus(valueByIndex[d.source.index]); })
   focus.selectAll("line.link").attr("x2", function(d) { return xCurr(dateByIndex[d.target.index]); })
@@ -480,8 +475,5 @@ function draw() {
 
   // Kind of same of the tick labels
   focus.select(".x.axis").call(xAxis);
-  
-  force.start();
-  forcedSim = 1;
 }
 </script>
