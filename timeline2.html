@@ -53,6 +53,12 @@ path {
   stroke-opacity: .6;
 }
 
+rect.pane {
+  cursor: move;
+  fill: none;
+  pointer-events: all;
+}
+
 </style>
 <body>
 <script src="http://d3js.org/d3.v3.min.js"></script>
@@ -130,17 +136,25 @@ var xAxis = d3.svg.axis().scale(xCurr).orient("bottom"),
     xAxis2 = d3.svg.axis().scale(xBase).orient("bottom"),
     yAxis = d3.svg.axis().scale(yCurr).orient("left");
 
+var zoom = d3.behavior.zoom()
+	.on("zoom", draw);
+	
 var svg = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", topSceneHeight + margin.top + margin.bottom);
 
+/* svg.append("rect")
+	.attr("class", "pane")
+	.attr("width", totalWidth)
+	.attr("height", totalHeight)
+	.call(zoom); */
 
 var path = svg.append("defs").append("clipPath").attr("id", "clip");
 path.append("rect")
   .attr("width", width)
-    .attr("height", topSceneHeight)
-    .attr("fill", "blue");
-
+  .attr("height", topSceneHeight)
+  .attr("fill", "blue");
+  
 var focus = svg.append("g")
     .attr("clip-path",  "url(#clip)")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -148,7 +162,12 @@ var focus = svg.append("g")
 var context = svg.append("g")
     .attr("transform", "translate(" + margin2.left + "," + topViewHeight + ")");
 
-var rect = focus.append("rect").attr("width", "100%").attr("height", "100%").attr("fill", "beige");
+var rect = focus.append("rect")
+	.attr("width", "100%")
+	.attr("height", "100%")
+	.attr("fill", "beige")
+	.attr("class", "pane")
+	.call(zoom);
 
 var rect2 = context.append("rect").attr("width", "100%").attr("height", "100%").attr("fill", "snow");
 
@@ -309,6 +328,8 @@ function readData(data) {
     .text(function(d, i) {
       return i % 2 == 0 ? "" : d.label
     });
+  
+  zoom.x(xCurr);
 }
 
 /// Now actually read the data
@@ -432,6 +453,8 @@ force.on("tick", function() {
       /// Update both the circle and the text
       this.childNodes[0].setAttribute("transform", "translate(" + shiftX + "," + shiftY + ")");
       this.childNodes[1].setAttribute("transform", "translate(" + shiftX + "," + shiftY + ")");
+      
+      
     }
   });
 
@@ -439,4 +462,26 @@ force.on("tick", function() {
   anchorNode.call(updateNode);
   anchorLink.call(updateLink);
 });
+
+
+function draw() {
+  console.log("foo");
+  focus.selectAll("line.link").attr("x1", function(d) { return xCurr(dateByIndex[d.source.index]); })
+  focus.selectAll("line.link").attr("y1", function(d) { return yFocus(valueByIndex[d.source.index]); })
+  focus.selectAll("line.link").attr("x2", function(d) { return xCurr(dateByIndex[d.target.index]); })
+  focus.selectAll("line.link").attr("y2", function(d) { return yFocus(valueByIndex[d.target.index]); })
+
+  // Re-evaluate the center of nodes in this new domain
+  focus.selectAll("circle.dot").attr("cx", function(d) { return xCurr(d.date); })
+  focus.selectAll("circle.dot").attr("cy", function(d) { return yFocus(d.value); })
+
+  focus.selectAll("circle.selected").attr("cx", function(d) { return xCurr(d.date); })
+  focus.selectAll("circle.selected").attr("cy", function(d) { return yFocus(d.value); })
+
+  // Kind of same of the tick labels
+  focus.select(".x.axis").call(xAxis);
+  
+  force.start();
+  forcedSim = 1;
+}
 </script>
